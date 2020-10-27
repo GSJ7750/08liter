@@ -8,6 +8,9 @@ class MyQDialog(QtWidgets.QDialog):
     def __init__(self, product_name, data, parent=None):
         super(MyQDialog, self).__init__(parent)
         
+        self.left_selected_items_list = list()
+        self.right_selected_items_list = list()
+        
         font = QtGui.QFont()
         font.setPointSize(18)
         fontMetrics = QtGui.QFontMetrics(font)
@@ -40,17 +43,17 @@ class MyQDialog(QtWidgets.QDialog):
         
         self.left_select_all_button = QtWidgets.QPushButton('전체선택')
         self.left_deselect_button = QtWidgets.QPushButton('선택해제')
+        self.left_selected_cell_button = QtWidgets.QPushButton('선택된 셀 체크')
         
         self.right_select_all_button = QtWidgets.QPushButton('전체선택')
         self.right_deselect_button = QtWidgets.QPushButton('선택해제')
+        self.right_selected_cell_button = QtWidgets.QPushButton('선택된 셀 체크')
         
         self.insert_button = QtWidgets.QPushButton('버리기\n>>>')
         self.remove_button = QtWidgets.QPushButton('꺼내기\n<<<')
         
-        self.data = sorted(data, reverse=False)
-        
-        
         self.data = [[QtWidgets.QCheckBox(), idx, d] for idx, d in enumerate(data)]
+        
         self.tmp_data = []
         
         self.init_tables()
@@ -60,11 +63,16 @@ class MyQDialog(QtWidgets.QDialog):
         #-------------------------------함수 연결
         self.left_select_all_button.clicked.connect(self.left_select_all)
         self.left_deselect_button.clicked.connect(self.left_deselect_all)
+        self.left_selected_cell_button.clicked.connect(self.left_selected_cell_select)
+        
         self.right_select_all_button.clicked.connect(self.right_select_all)
         self.right_deselect_button.clicked.connect(self.right_deselect_all)
+        self.right_selected_cell_button.clicked.connect(self.right_selected_cell_select)
+        
         self.pushButton.clicked.connect(self.close)
         self.insert_button.clicked.connect(self.insert)
         self.remove_button.clicked.connect(self.remove)
+        
         #-------------------------------
         
 
@@ -80,6 +88,7 @@ class MyQDialog(QtWidgets.QDialog):
         left_inner_layout.addWidget(self.label_left, 0, 0)
         left_inner_layout.addWidget(self.left_select_all_button, 0, 1)
         left_inner_layout.addWidget(self.left_deselect_button, 0, 3)
+        left_inner_layout.addWidget(self.left_selected_cell_button, 0, 4)
         layout.addLayout(left_inner_layout, 2, 0, QtCore.Qt.AlignLeft)
         layout.addWidget(self.tableWidget, 3, 0)
         
@@ -88,6 +97,7 @@ class MyQDialog(QtWidgets.QDialog):
         right_inner_layout.addWidget(self.label_right, 0, 0)
         right_inner_layout.addWidget(self.right_select_all_button, 0, 1)
         right_inner_layout.addWidget(self.right_deselect_button, 0, 3)
+        right_inner_layout.addWidget(self.right_selected_cell_button, 0, 4)
         layout.addLayout(right_inner_layout, 2, 2, QtCore.Qt.AlignLeft)
         layout.addWidget(self.tableWidget2, 3, 2)
         
@@ -108,6 +118,41 @@ class MyQDialog(QtWidgets.QDialog):
         
         
     #-------------------------------함수
+    def left_selected_cell_select(self):
+        items = self.tableWidget.selectedItems()
+        n = 2
+        items = [items[i:i + n] for i in range(0, len(items), n)]
+        
+        selected_items_list = list()
+        for item in items:
+            selected_items_list.append(int(item[0].text()))
+        self.left_selected_items_list = sorted(selected_items_list)
+        
+        selected_list = self.left_selected_items_list
+        for data in self.data:
+            if data[1] in selected_list:
+                data[0].setChecked(True)
+        self.left_selected_items_list.clear()
+        self.tableWidget.clearSelection()
+
+
+    def right_selected_cell_select(self):
+        items = self.tableWidget2.selectedItems()
+        n = 2
+        items = [items[i:i + n] for i in range(0, len(items), n)]
+        
+        selected_items_list = list()
+        for item in items:
+            selected_items_list.append(int(item[0].text()))
+        self.right_selected_items_list = sorted(selected_items_list)
+        
+        selected_list = self.right_selected_items_list
+        for data in self.tmp_data:
+            if data[1] in selected_list:
+                data[0].setChecked(True)
+        self.right_selected_items_list.clear()
+        self.tableWidget2.clearSelection()
+        
     def init_tables(self):
         self.tableWidget = QtWidgets.QTableWidget(len(self.data),3)
         self.tableWidget.setObjectName("tableWidget")
@@ -120,7 +165,7 @@ class MyQDialog(QtWidgets.QDialog):
         for cell_idx in range(len(self.data)):
             cellWidget = QtWidgets.QWidget()
             layoutCB = QtWidgets.QHBoxLayout(cellWidget)
-            self.data[cell_idx][0].toggle()       
+            #self.data[cell_idx][0].toggle()       
             layoutCB.addWidget(self.data[cell_idx][0])
             layoutCB.setAlignment(QtCore.Qt.AlignCenter)
             layoutCB.setContentsMargins(0,0,0,0)
@@ -139,8 +184,15 @@ class MyQDialog(QtWidgets.QDialog):
         self.tableWidget2.setColumnWidth(0,40)
         self.tableWidget2.setColumnWidth(1,40)
         header2.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
-
+        
+        self.tableWidget.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
+        self.tableWidget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)#cell 클릭 시 row 전체 선택 되도록
+        self.tableWidget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
     
+        self.tableWidget2.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
+        self.tableWidget2.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.tableWidget2.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        
     def set_table_contents(self):
         for cell_idx in range(len(self.data)):
             cellWidget = QtWidgets.QWidget()
